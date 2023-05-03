@@ -1,31 +1,68 @@
-FROM php:8.0.2-cli-alpine
+FROM php:8.0.5-fpm
 
-ENV \
-    APP_PORT="8001"
-    # APP_DIR="/app" \
+# Set working directory
+WORKDIR /var/www
 
-COPY . /
+# Arguments defined in docker-compose.yml
+ARG user
+ARG uid
 
-RUN apk add --update \
+# Install system dependencies
+# RUN apt-get update && apt-get install -y \
+#     git \
+#     curl \
+#     libpng-dev \
+#     libonig-dev \
+#     libxml2-dev \
+#     libzip-dev \
+#     zip \
+#     unzip
+
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    git \
     curl \
-    php \
-    php-opcache\
-    php-openssl\
-    php-pdo\
-    php-json\
-    php-phar\
-    php-dom\
-    && rm -rf /var/cache/apk/*
+    libpng-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
+    libjpeg62-turbo-dev \
+    libmcrypt-dev \
+    libgd-dev \
+    jpegoptim optipng pngquant gifsicle \
+    libonig-dev \
+    libxml2-dev \
+    libzip-dev \
+    zip \
+    sudo \
+    unzip \
+    npm \
+    nodejs
 
-RUN curl -sS https://getcomposer.org/installer | php -- \
-    --install-dir=/usr/bin --filename=composer
 
-# RUN curl -sS https://getcomposer.org/installer | php -- --check
 
-RUN composer-update
-RUN cd / && php artisan key:generate
+# Clear cache
+RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /
-CMD php artisan serve --host=0.0.0.0 --port=$APP_PORT
+# Install PHP extensions
+# RUN docker-php-ext-configure gd --enable-gd --with-freetype --with-jpeg
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg
 
-EXPOSE $APP_PORT
+RUN docker-php-ext-install zip mbstring exif pcntl bcmath gd mysqli pdo pdo_mysql
+
+RUN pecl install mongodb \
+    && docker-php-ext-enable mongodb
+
+ENV TZ=Asia/Jakarta
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+# Get latest Composer
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+
+
+# Create system user to run Composer and Artisan Commands
+RUN useradd -G www-data,root -u $uid -d /home/$user $user
+RUN mkdir -p /home/$user/.composer && \
+    chown -R $user:$user /home/$user && \
+    chmod -R 0777 /var/www
+
+USER $user

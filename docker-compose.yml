@@ -1,14 +1,33 @@
-version: "3.8"
+version: "3.7"
 services:
-    api-leads:
-        container_name: api-leads
-        image: api-leads
-        ports:
-            -8080:8080
-        environment:
-            - name=api
+  almot:
+    build:
+      args:
+        user: rahanpas
+        uid: 1000
+      context: ./
+      dockerfile: Dockerfile
+    image: lmot
+    container_name: lmot-almot
+    restart: unless-stopped
+    working_dir: /var/www/
+    volumes:
+      - ./:/var/www
+    networks:
+      - lmot
+
+  nginx:
+    image: nginx:alpine
+    container_name: lmot-nginx
+    restart: unless-stopped
+    ports:
+      - 7696:8213
+    volumes:
+      - ./:/var/www
+      - ./docker-compose/nginx:/etc/nginx/conf.d/
+    networks:
+      - lmot
+
 networks:
-    api_network:
-        name: api_network
-
-
+  lmot:
+    driver: bridge
