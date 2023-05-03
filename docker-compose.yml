@@ -1,0 +1,14 @@
+version: "3.8"
+services:
+    api-leads:
+        container_name: api-leads
+        image: api-leads
+        ports:
+            -8080:8080
+        environment:
+            - name=api
+networks:
+    api_network:
+        name: api_network
+
+
